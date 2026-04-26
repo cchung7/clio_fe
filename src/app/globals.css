@@ -1,26 +1,354 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /*
+    Clio Theme:
+    Serene purple, timeless gold, academic parchment,
+    deep archive blue, and record-keeper ink.
+  */
+
+  --clio-ink: #15131d;
+  --clio-archive-blue: #17213a;
+  --clio-deep-blue: #1f2a44;
+
+  --clio-purple-950: #21152f;
+  --clio-purple-900: #2f1f46;
+  --clio-purple-850: #3a2456;
+  --clio-purple-800: #45305f;
+  --clio-purple-700: #5b4278;
+  --clio-purple-600: #73569a;
+  --clio-purple-500: #8b6bb8;
+  --clio-purple-300: #c7b0e4;
+  --clio-purple-200: #d8c6eb;
+  --clio-purple-100: #eee8f8;
+  --clio-purple-50: #f7f3fc;
+
+  --clio-gold-800: #704e16;
+  --clio-gold-700: #8f681f;
+  --clio-gold-600: #b98a2e;
+  --clio-gold-500: #d4a84f;
+  --clio-gold-400: #dfbc6e;
+  --clio-gold-300: #ead093;
+  --clio-gold-100: #fbefd0;
+
+  --clio-parchment: #f7f1e6;
+  --clio-paper: #fffaf0;
+  --clio-white: #fffdf8;
+  --clio-border: #e5d8c3;
+  --clio-purple-border: #d8c6eb;
+  --clio-muted: #746b61;
+  --clio-soft-muted: #9a8f82;
+
+  --clio-success: #3f6f52;
+  --clio-warning: #a86f1f;
+  --clio-danger: #9f3434;
+
+  --background: var(--clio-parchment);
+  --foreground: var(--clio-ink);
+
+  --card: var(--clio-white);
+  --card-foreground: var(--clio-ink);
+
+  --popover: var(--clio-white);
+  --popover-foreground: var(--clio-ink);
+
+  --primary: var(--clio-purple-850);
+  --primary-foreground: #fffaf0;
+
+  --secondary: var(--clio-purple-50);
+  --secondary-foreground: var(--clio-purple-950);
+
+  --muted: #efe6d8;
+  --muted-foreground: var(--clio-muted);
+
+  --accent: var(--clio-gold-500);
+  --accent-foreground: var(--clio-ink);
+
+  --destructive: var(--clio-danger);
+  --destructive-foreground: #fffaf0;
+
+  --border: var(--clio-border);
+  --input: var(--clio-border);
+  --ring: var(--clio-purple-500);
+
+  --radius: 0.9rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  border-color: var(--border);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(115, 86, 154, 0.2),
+      transparent 34rem
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(212, 168, 79, 0.14),
+      transparent 30rem
+    ),
+    linear-gradient(135deg, var(--clio-paper), var(--clio-parchment));
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings:
+    "rlig" 1,
+    "calt" 1;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: var(--clio-gold-300);
+  color: var(--clio-ink);
+}
+
+/* React Flow polish */
+
+.react-flow__background {
+  background-color: #fbf6ec;
+}
+
+.react-flow__controls {
+  border: 1px solid var(--clio-purple-border);
+  overflow: hidden;
+  border-radius: 0.85rem;
+  box-shadow: 0 10px 24px rgba(69, 48, 95, 0.13);
+}
+
+.react-flow__controls button {
+  background: var(--clio-white);
+  border-bottom: 1px solid var(--clio-purple-border);
+  color: var(--clio-purple-950);
+}
+
+.react-flow__controls button:hover {
+  background: var(--clio-purple-50);
+}
+
+.react-flow__minimap {
+  border: 1px solid var(--clio-purple-border);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(69, 48, 95, 0.13);
+}
+
+/* App shell */
+
+.clio-app-shell {
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(115, 86, 154, 0.18),
+      transparent 32rem
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(212, 168, 79, 0.13),
+      transparent 30rem
+    ),
+    linear-gradient(135deg, #fffaf0, #f7f1e6);
+  color: var(--clio-ink);
+}
+
+/* Top navigation */
+
+.clio-topbar {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(247, 243, 252, 0.96),
+      rgba(255, 253, 248, 0.94)
+    );
+  border-color: var(--clio-purple-border);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgba(69, 48, 95, 0.08);
+}
+
+/* Sidebars and panels */
+
+.clio-sidebar {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(247, 243, 252, 0.82),
+      rgba(255, 250, 240, 0.92)
+    );
+  border-color: var(--clio-purple-border);
+}
+
+.clio-panel {
+  background: rgba(255, 253, 248, 0.94);
+  border: 1px solid var(--clio-purple-border);
+  box-shadow: 0 18px 48px rgba(69, 48, 95, 0.11);
+}
+
+.clio-panel-soft {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(247, 243, 252, 0.95),
+      rgba(251, 239, 208, 0.42)
+    );
+  border: 1px solid var(--clio-purple-border);
+}
+
+.clio-card {
+  background: var(--clio-white);
+  border: 1px solid var(--clio-purple-border);
+  box-shadow: 0 12px 30px rgba(69, 48, 95, 0.08);
+}
+
+/* Form elements */
+
+.clio-input {
+  background: rgba(255, 253, 248, 0.96);
+  border: 1px solid var(--clio-border);
+  color: var(--clio-ink);
+}
+
+.clio-input:focus {
+  outline: none;
+  border-color: var(--clio-purple-600);
+  box-shadow: 0 0 0 3px rgba(115, 86, 154, 0.22);
+}
+
+.clio-label {
+  color: var(--clio-purple-800);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.clio-muted {
+  color: var(--clio-muted);
+}
+
+/* Buttons */
+
+.clio-btn-primary {
+  background: var(--clio-purple-900);
+  color: var(--clio-white);
+  border: 1px solid var(--clio-purple-900);
+  box-shadow: 0 10px 20px rgba(47, 31, 70, 0.16);
+}
+
+.clio-btn-primary:hover {
+  background: var(--clio-purple-800);
+}
+
+.clio-btn-secondary {
+  background: var(--clio-white);
+  color: var(--clio-purple-950);
+  border: 1px solid var(--clio-purple-border);
+}
+
+.clio-btn-secondary:hover {
+  background: var(--clio-purple-50);
+  border-color: var(--clio-purple-500);
+}
+
+.clio-btn-gold {
+  background: var(--clio-gold-500);
+  color: var(--clio-ink);
+  border: 1px solid var(--clio-gold-600);
+  box-shadow: 0 10px 20px rgba(143, 104, 31, 0.14);
+}
+
+.clio-btn-gold:hover {
+  background: var(--clio-gold-300);
+}
+
+/* Badges */
+
+.clio-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--clio-border);
+  background: rgba(255, 253, 248, 0.85);
+  color: var(--clio-muted);
+  padding: 0.15rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.clio-badge-purple {
+  border-color: var(--clio-purple-border);
+  background: var(--clio-purple-50);
+  color: var(--clio-purple-800);
+}
+
+.clio-badge-gold {
+  border-color: var(--clio-gold-300);
+  background: var(--clio-gold-100);
+  color: var(--clio-gold-800);
+}
+
+/* Dog-ear notes */
+
+.clio-note-card {
+  position: relative;
+  background:
+    linear-gradient(
+      135deg,
+      #fff4cf,
+      #fbefd0
+    );
+  border: 1px solid #e7c56f;
+  box-shadow: 0 14px 30px rgba(143, 104, 31, 0.13);
+}
+
+.clio-note-card::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 0;
+  height: 0;
+  border-top: 22px solid var(--clio-white);
+  border-left: 22px solid #e4c061;
+}
+
+/* React Flow nodes */
+
+.clio-flow-node {
+  background:
+    linear-gradient(
+      180deg,
+      #fffdf8,
+      #f7f3fc
+    );
+  border: 1px solid var(--clio-purple-border);
+  box-shadow: 0 12px 30px rgba(69, 48, 95, 0.14);
+}
+
+.clio-flow-node:hover {
+  border-color: var(--clio-purple-500);
+  box-shadow: 0 16px 38px rgba(69, 48, 95, 0.2);
+}
+
+/* Markdown/code export preview */
+
+.clio-code-preview {
+  background:
+    linear-gradient(
+      180deg,
+      #15131d,
+      #21152f
+    );
+  color: #fffaf0;
+  border: 1px solid rgba(255, 250, 240, 0.12);
 }
