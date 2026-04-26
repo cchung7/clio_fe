@@ -1,5 +1,3 @@
-import * as React from "react";
-
 import type {
   ArchitectureNode,
   DocumentationProject,
@@ -21,6 +19,7 @@ type NodeDetailsPanelProps = {
     updater: (current: DocumentationProject) => DocumentationProject
   ) => void;
   openNode: (id: string) => void;
+  deleteNode: (id: string) => void;
   addRequirement: () => void;
   addNote: () => void;
 };
@@ -32,6 +31,7 @@ export function NodeDetailsPanel({
   updateNode,
   updateProject,
   openNode,
+  deleteNode,
   addRequirement,
   addNote,
 }: NodeDetailsPanelProps) {
@@ -144,6 +144,20 @@ export function NodeDetailsPanel({
         updateProject={updateProject}
         onAddNote={addNote}
       />
+
+      <section className="rounded-xl border border-red-200 bg-red-50/60 p-4">
+        <div className="text-sm font-bold text-red-800">Danger Zone</div>
+        <p className="mt-1 text-xs leading-5 text-red-700">
+          Delete this element and all child elements nested inside it.
+        </p>
+
+        <button
+          onClick={() => deleteNode(node.id)}
+          className="mt-3 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-800"
+        >
+          Delete Element
+        </button>
+      </section>
     </div>
   );
 }

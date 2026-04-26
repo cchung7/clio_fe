@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Layers, Plus } from "lucide-react";
+import { Layers, Plus, Trash2 } from "lucide-react";
 
 import type {
   DecompositionView,
@@ -9,7 +9,6 @@ import type {
 } from "../_lib/builderTypes";
 import {
   getAllowedNodeKindsForCurrentView,
-  getCurrentViewLabel,
   getNodeKindDescription,
   getNodeKindLabel,
 } from "../_lib/builderUtils";
@@ -30,6 +29,7 @@ type BuilderSidebarProps = {
     description: string;
     lifecycle: NodeLifecycle;
   }) => void;
+  deleteNode: (id: string) => void;
   resetProject: () => void;
 };
 
@@ -42,14 +42,13 @@ export function BuilderSidebar({
   setFocusedNodeId,
   updateProject,
   addNode,
+  deleteNode,
   resetProject,
 }: BuilderSidebarProps) {
   const allowedKinds = getAllowedNodeKindsForCurrentView({
     project,
     focusedNodeId,
   });
-
-  const currentViewLabel = getCurrentViewLabel(project, focusedNodeId);
 
   const [newElementKind, setNewElementKind] = React.useState<NodeKind>(
     allowedKinds[0] ?? "component"
@@ -61,7 +60,7 @@ export function BuilderSidebar({
 
   React.useEffect(() => {
     setNewElementKind(allowedKinds[0] ?? "component");
-  }, [focusedNodeId, decompositionView]);
+  }, [focusedNodeId, decompositionView, allowedKinds]);
 
   const currentViewNodes = project.nodes.filter(
     (node) =>
@@ -123,10 +122,7 @@ export function BuilderSidebar({
         </div>
 
         <p className="mb-4 text-xs text-[var(--clio-muted)]">
-          Current View:{" "}
-          <span className="font-semibold text-[var(--clio-purple-900)]">
-            {currentViewLabel}
-          </span>
+          Create a new element in the current canvas.
         </p>
 
         <div className="space-y-3">
@@ -206,24 +202,44 @@ export function BuilderSidebar({
             ).length;
 
             return (
-              <button
+              <div
                 key={node.id}
-                onClick={() => setSelectedNodeId(node.id)}
-                onDoubleClick={() => {
-                  setSelectedNodeId(node.id);
-                  setFocusedNodeId(node.id);
-                }}
-                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                className={`group grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg px-3 py-2 transition ${
                   selectedNodeId === node.id
                     ? "bg-[var(--clio-purple-900)] text-[var(--clio-white)]"
                     : "text-[var(--clio-ink)] hover:bg-[var(--clio-purple-50)]"
                 }`}
               >
-                <div className="font-semibold">{node.name}</div>
-                <div className="text-xs opacity-75">
-                  {node.kind} · {node.lifecycle} · {childCount} children
-                </div>
-              </button>
+                <button
+                  onClick={() => setSelectedNodeId(node.id)}
+                  onDoubleClick={() => {
+                    setSelectedNodeId(node.id);
+                    setFocusedNodeId(node.id);
+                  }}
+                  className="min-w-0 text-left text-sm"
+                >
+                  <div className="truncate font-semibold">{node.name}</div>
+                  <div className="text-xs opacity-75">
+                    {node.kind} · {node.lifecycle} · {childCount} children
+                  </div>
+                </button>
+
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    deleteNode(node.id);
+                  }}
+                  className={`rounded-lg p-2 transition ${
+                    selectedNodeId === node.id
+                      ? "hover:bg-white/15"
+                      : "text-red-700 hover:bg-red-50"
+                  }`}
+                  aria-label={`Delete ${node.name}`}
+                  title={`Delete ${node.name}`}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             );
           })}
 

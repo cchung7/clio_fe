@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ReactFlowProvider } from "@xyflow/react";
 import { FileText, PanelLeft, PanelRight, X } from "lucide-react";
 
 import type {
@@ -27,6 +28,27 @@ import { ArchitectureCanvas } from "./ArchitectureCanvas";
 import { NodeDetailsPanel } from "./NodeDetailsPanel";
 import { DocumentPreview } from "./DocumentPreview";
 import { EvolutionTimeline } from "./EvolutionTimeline";
+
+function collectDescendantNodeIds(
+  nodes: ArchitectureNode[],
+  nodeId: string
+): Set<string> {
+  const ids = new Set<string>([nodeId]);
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+
+    for (const node of nodes) {
+      if (ids.has(node.parentId) && !ids.has(node.id)) {
+        ids.add(node.id);
+        changed = true;
+      }
+    }
+  }
+
+  return ids;
+}
 
 export function ClioBuilderClient() {
   const [project, setProject] =
@@ -83,6 +105,7 @@ export function ClioBuilderClient() {
 
   React.useEffect(() => {
     if (!hasLoadedStoredProject) return;
+
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
   }, [project, hasLoadedStoredProject]);
 
@@ -143,6 +166,57 @@ export function ClioBuilderClient() {
     }));
 
     setSelectedNodeId(newNode.id);
+    setWorkspacePanel("canvas");
+    setRightDrawerOpen(true);
+  }
+
+  function deleteNode(nodeId: string) {
+    const nodeToDelete = project.nodes.find((node) => node.id === nodeId);
+
+    if (!nodeToDelete) return;
+
+    const confirmed = window.confirm(
+      `Delete "${nodeToDelete.name}" and all of its child elements?`
+    );
+
+    if (!confirmed) return;
+
+    const idsToDelete = collectDescendantNodeIds(project.nodes, nodeId);
+    const nextFocusedNodeId = idsToDelete.has(focusedNodeId)
+      ? nodeToDelete.parentId || SYSTEM_OVERVIEW_ID
+      : focusedNodeId;
+
+    updateProject((current) => {
+      const deletedIds = collectDescendantNodeIds(current.nodes, nodeId);
+
+      return {
+        ...current,
+        nodes: current.nodes.filter((node) => !deletedIds.has(node.id)),
+        edges: current.edges.filter(
+          (edge) => !deletedIds.has(edge.source) && !deletedIds.has(edge.target)
+        ),
+        requirements: current.requirements
+          .map((requirement) => ({
+            ...requirement,
+            relatedNodeIds: requirement.relatedNodeIds.filter(
+              (id) => !deletedIds.has(id)
+            ),
+          }))
+          .filter((requirement) => requirement.relatedNodeIds.length > 0),
+        notes: current.notes.filter(
+          (note) => !note.targetNodeId || !deletedIds.has(note.targetNodeId)
+        ),
+        changes: current.changes.map((change) => ({
+          ...change,
+          relatedNodeIds: change.relatedNodeIds.filter(
+            (id) => !deletedIds.has(id)
+          ),
+        })),
+      };
+    });
+
+    setFocusedNodeId(nextFocusedNodeId);
+    setSelectedNodeId(nextFocusedNodeId);
     setWorkspacePanel("canvas");
   }
 
@@ -315,6 +389,7 @@ export function ClioBuilderClient() {
       setFocusedNodeId={setFocusedNodeId}
       updateProject={updateProject}
       addNode={addNode}
+      deleteNode={deleteNode}
       resetProject={resetProject}
     />
   );
@@ -327,6 +402,7 @@ export function ClioBuilderClient() {
       updateNode={updateNode}
       updateProject={updateProject}
       openNode={openNode}
+      deleteNode={deleteNode}
       addRequirement={addRequirement}
       addNote={addNote}
     />
@@ -335,15 +411,17 @@ export function ClioBuilderClient() {
   const workspace = (
     <section className="min-h-0 border-[var(--clio-border)] bg-[#fbf6ec] xl:border-x">
       {workspacePanel === "canvas" ? (
-        <ArchitectureCanvas
-          project={project}
-          focusedNodeId={focusedNodeId}
-          selectedNodeId={selectedNodeId}
-          decompositionView={decompositionView}
-          updateProject={updateProject}
-          setSelectedNodeId={setSelectedNodeId}
-          setFocusedNodeId={setFocusedNodeId}
-        />
+        <ReactFlowProvider>
+          <ArchitectureCanvas
+            project={project}
+            focusedNodeId={focusedNodeId}
+            selectedNodeId={selectedNodeId}
+            decompositionView={decompositionView}
+            updateProject={updateProject}
+            setSelectedNodeId={setSelectedNodeId}
+            setFocusedNodeId={setFocusedNodeId}
+          />
+        </ReactFlowProvider>
       ) : null}
 
       {workspacePanel === "document" ? (
