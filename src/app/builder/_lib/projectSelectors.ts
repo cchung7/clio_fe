@@ -4,7 +4,7 @@ import type {
   DocumentationProject,
   NodeKind,
 } from "./builderTypes";
-import { SYSTEM_OVERVIEW_ID } from "./builderUtils";
+import { SYSTEM_OVERVIEW_ID } from "./projectConstants";
 
 export function selectNodeById(project: DocumentationProject, id: string) {
   return project.nodes.find((node) => node.id === id) ?? null;
@@ -72,7 +72,10 @@ export function selectBreadcrumbs(
 
   return [
     ...breadcrumbs,
-    ...stack.map((node) => ({ id: node.id, name: node.name })),
+    ...stack.map((node) => ({
+      id: node.id,
+      name: node.name,
+    })),
   ];
 }
 
@@ -84,22 +87,24 @@ export function selectAllowedNodeKindsForCurrentView({
   focusedNodeId: string;
 }): NodeKind[] {
   if (focusedNodeId === SYSTEM_OVERVIEW_ID) {
-    return ["system"];
+    return ["actor", "system", "external"];
   }
 
   const focusedNode = selectNodeById(project, focusedNodeId);
 
-  if (!focusedNode) return ["system"];
+  if (!focusedNode) {
+    return ["system"];
+  }
 
   if (focusedNode.kind === "system") {
-    return ["actor", "layer", "external"];
+    return ["layer", "component", "api", "database"];
   }
 
   if (focusedNode.kind === "layer") {
-    return ["component", "api", "database", "external"];
+    return ["component", "api", "database"];
   }
 
-  return ["component", "api", "database", "external"];
+  return ["component", "api", "database"];
 }
 
 export function selectRelatedRequirements(

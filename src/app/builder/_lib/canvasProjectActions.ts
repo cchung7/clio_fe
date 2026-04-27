@@ -4,7 +4,19 @@ import type {
   DocumentationProject,
   Note,
 } from "./builderTypes";
-import { createId } from "./builderUtils";
+import { createId } from "./idUtils";
+
+export type ConnectorPatch = {
+  source?: string;
+  target?: string;
+  label?: string | undefined;
+  lineStyle?: ConnectorLineStyle;
+  arrowMode?: ConnectorArrowMode;
+};
+
+function normalizeOptionalText(value?: string) {
+  return value?.trim() || undefined;
+}
 
 export function createCanvasNoteForProject({
   project,
@@ -100,7 +112,7 @@ export function addConnectorToProject({
         id: createId("edge"),
         source,
         target,
-        label: label?.trim() || undefined,
+        label: normalizeOptionalText(label),
         relationshipType: "uses",
         lineStyle,
         arrowMode,
@@ -116,18 +128,21 @@ export function updateConnectorInProject({
 }: {
   project: DocumentationProject;
   edgeId: string;
-  patch: {
-    source?: string;
-    target?: string;
-    label?: string | undefined;
-    lineStyle?: ConnectorLineStyle;
-    arrowMode?: ConnectorArrowMode;
-  };
+  patch: ConnectorPatch;
 }): DocumentationProject {
+  const hasLabelPatch = Object.prototype.hasOwnProperty.call(patch, "label");
+
+  const normalizedPatch: ConnectorPatch = hasLabelPatch
+    ? {
+        ...patch,
+        label: normalizeOptionalText(patch.label),
+      }
+    : patch;
+
   return {
     ...project,
     edges: project.edges.map((edge) =>
-      edge.id === edgeId ? { ...edge, ...patch } : edge
+      edge.id === edgeId ? { ...edge, ...normalizedPatch } : edge
     ),
   };
 }
