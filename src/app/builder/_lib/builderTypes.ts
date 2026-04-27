@@ -27,6 +27,10 @@ export type RelationshipType =
   | "reads"
   | "sends_data_to";
 
+export type ConnectorLineStyle = "solid" | "dotted";
+
+export type ConnectorArrowMode = "none" | "forward" | "backward" | "both";
+
 export type RequirementType =
   | "functional"
   | "nonfunctional"
@@ -59,6 +63,8 @@ export type ArchitectureEdge = {
   target: string;
   label?: string;
   relationshipType: RelationshipType;
+  lineStyle?: ConnectorLineStyle;
+  arrowMode?: ConnectorArrowMode;
 };
 
 export type Requirement = {
