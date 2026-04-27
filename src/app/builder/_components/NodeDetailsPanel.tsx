@@ -1,28 +1,31 @@
+import { Trash2 } from "lucide-react";
+
 import type {
   ArchitectureNode,
+  DecompositionView,
   DocumentationProject,
   NodeKind,
   NodeLifecycle,
-  NoteType,
   RequirementPriority,
   RequirementType,
 } from "../_lib/builderTypes";
-import { getChildCount } from "../_lib/builderUtils";
+import { getChildCount, SYSTEM_OVERVIEW_ID } from "../_lib/builderUtils";
 import { TextAreaField } from "./TextAreaField";
 
 type NodeDetailsPanelProps = {
   node: ArchitectureNode | null;
   project: DocumentationProject;
-  decompositionView: "system" | "functional" | "object" | "domain";
+  decompositionView: DecompositionView;
   updateNode: (id: string, patch: Partial<ArchitectureNode>) => void;
   updateProject: (
     updater: (current: DocumentationProject) => DocumentationProject
   ) => void;
-  openNode: (id: string) => void;
-  deleteNode: (id: string) => void;
   addRequirement: () => void;
-  addNote: () => void;
 };
+
+function formatElementCount(count: number) {
+  return `${count} ${count === 1 ? "element" : "elements"}`;
+}
 
 export function NodeDetailsPanel({
   node,
@@ -30,10 +33,7 @@ export function NodeDetailsPanel({
   decompositionView,
   updateNode,
   updateProject,
-  openNode,
-  deleteNode,
   addRequirement,
-  addNote,
 }: NodeDetailsPanelProps) {
   if (!node) {
     return (
@@ -48,15 +48,14 @@ export function NodeDetailsPanel({
     );
   }
 
+  const isHighLevelSystemElement =
+    node.kind === "system" && node.parentId === SYSTEM_OVERVIEW_ID;
+
   const relatedRequirements = project.requirements.filter((requirement) =>
     requirement.relatedNodeIds.includes(node.id)
   );
 
-  const relatedNotes = project.notes.filter(
-    (note) => note.targetNodeId === node.id
-  );
-
-  const childCount = getChildCount({
+  const elementCount = getChildCount({
     project,
     nodeId: node.id,
     decompositionView,
@@ -65,24 +64,17 @@ export function NodeDetailsPanel({
   return (
     <div className="space-y-5">
       <section>
-        <div className="clio-label mb-1">Selected Element</div>
+        <div className="clio-label mb-1">Element Inspector</div>
         <input
           value={node.name}
           onChange={(event) => updateNode(node.id, { name: event.target.value })}
           className="clio-input w-full rounded-lg px-3 py-2 text-sm font-semibold"
         />
 
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex justify-center">
           <span className="clio-badge clio-badge-purple">
-            {childCount} child items
+            {formatElementCount(elementCount)}
           </span>
-
-          <button
-            onClick={() => openNode(node.id)}
-            className="clio-btn-primary rounded-lg px-3 py-2 text-sm font-medium"
-          >
-            Open / Decompose
-          </button>
         </div>
       </section>
 
@@ -133,31 +125,107 @@ export function NodeDetailsPanel({
         onChange={(value) => updateNode(node.id, { description: value })}
       />
 
-      <RequirementSection
-        relatedRequirements={relatedRequirements}
-        updateProject={updateProject}
-        onAddRequirement={addRequirement}
-      />
+      {isHighLevelSystemElement ? (
+        <SystemSummarySection
+          node={node}
+          project={project}
+          decompositionView={decompositionView}
+        />
+      ) : (
+        <RequirementSection
+          relatedRequirements={relatedRequirements}
+          updateProject={updateProject}
+          onAddRequirement={addRequirement}
+        />
+      )}
+    </div>
+  );
+}
 
-      <NotesSection
-        relatedNotes={relatedNotes}
-        updateProject={updateProject}
-        onAddNote={addNote}
-      />
+function SystemSummarySection({
+  node,
+  project,
+  decompositionView,
+}: {
+  node: ArchitectureNode;
+  project: DocumentationProject;
+  decompositionView: DecompositionView;
+}) {
+  const childNodes = project.nodes.filter(
+    (item) => item.parentId === node.id && item.viewType === decompositionView
+  );
 
-      <section className="rounded-xl border border-red-200 bg-red-50/60 p-4">
-        <div className="text-sm font-bold text-red-800">Danger Zone</div>
-        <p className="mt-1 text-xs leading-5 text-red-700">
-          Delete this element and all child elements nested inside it.
-        </p>
+  const actorCount = childNodes.filter((item) => item.kind === "actor").length;
+  const layerCount = childNodes.filter((item) => item.kind === "layer").length;
+  const databaseCount = childNodes.filter(
+    (item) => item.kind === "database"
+  ).length;
+  const externalCount = childNodes.filter(
+    (item) => item.kind === "external"
+  ).length;
 
-        <button
-          onClick={() => deleteNode(node.id)}
-          className="mt-3 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-800"
-        >
-          Delete Element
-        </button>
-      </section>
+  return (
+    <section className="clio-panel-soft rounded-xl p-4">
+      <h3 className="text-sm font-bold text-[var(--clio-purple-950)]">
+        System Summary
+      </h3>
+
+      <p className="mt-1 text-xs leading-5 text-[var(--clio-muted)]">
+        This high-level system element represents the main software boundary.
+        Use this section for scope, structure, and major parts. Detailed
+        requirements are better attached to layers, components, APIs, and data
+        stores.
+      </p>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+        <SystemSummaryTile label="Actors" value={actorCount} />
+        <SystemSummaryTile label="Layers" value={layerCount} />
+        <SystemSummaryTile label="Databases" value={databaseCount} />
+        <SystemSummaryTile label="External" value={externalCount} />
+      </div>
+
+      <div className="mt-3">
+        <div className="clio-label mb-2">Major Elements</div>
+
+        {childNodes.length ? (
+          <div className="space-y-1">
+            {childNodes.map((childNode) => (
+              <div
+                key={childNode.id}
+                className="rounded-lg border border-[var(--clio-purple-border)] bg-[var(--clio-white)] px-3 py-2 text-xs"
+              >
+                <div className="font-semibold text-[var(--clio-purple-950)]">
+                  {childNode.name}
+                </div>
+                <div className="text-[var(--clio-muted)]">
+                  {childNode.kind} · {childNode.lifecycle}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--clio-muted)]">
+            No major elements have been added under this system yet.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function SystemSummaryTile({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-lg border border-[var(--clio-purple-border)] bg-[var(--clio-white)] px-3 py-2">
+      <div className="text-lg font-bold text-[var(--clio-purple-950)]">
+        {value}
+      </div>
+      <div className="text-[var(--clio-muted)]">{label}</div>
     </div>
   );
 }
@@ -173,6 +241,19 @@ function RequirementSection({
   ) => void;
   onAddRequirement: () => void;
 }) {
+  function deleteRequirement(requirementId: string) {
+    const confirmed = window.confirm("Delete this requirement?");
+
+    if (!confirmed) return;
+
+    updateProject((current) => ({
+      ...current,
+      requirements: current.requirements.filter(
+        (requirement) => requirement.id !== requirementId
+      ),
+    }));
+  }
+
   return (
     <section>
       <div className="mb-2 flex items-center justify-between gap-3">
@@ -191,20 +272,32 @@ function RequirementSection({
       <div className="space-y-3">
         {relatedRequirements.map((requirement) => (
           <div key={requirement.id} className="clio-card rounded-xl p-3">
-            <input
-              value={requirement.code}
-              onChange={(event) =>
-                updateProject((current) => ({
-                  ...current,
-                  requirements: current.requirements.map((item) =>
-                    item.id === requirement.id
-                      ? { ...item, code: event.target.value }
-                      : item
-                  ),
-                }))
-              }
-              className="clio-input mb-2 w-full rounded-lg px-2 py-1 text-xs font-semibold"
-            />
+            <div className="mb-2 grid grid-cols-[1fr_auto] gap-2">
+              <input
+                value={requirement.code}
+                onChange={(event) =>
+                  updateProject((current) => ({
+                    ...current,
+                    requirements: current.requirements.map((item) =>
+                      item.id === requirement.id
+                        ? { ...item, code: event.target.value }
+                        : item
+                    ),
+                  }))
+                }
+                className="clio-input w-full rounded-lg px-2 py-1 text-xs font-semibold"
+              />
+
+              <button
+                type="button"
+                onClick={() => deleteRequirement(requirement.id)}
+                className="rounded-lg p-2 text-red-700 transition hover:bg-red-50"
+                aria-label={`Delete ${requirement.code}`}
+                title={`Delete ${requirement.code}`}
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
 
             <input
               value={requirement.title}
@@ -290,121 +383,6 @@ function RequirementSection({
         {!relatedRequirements.length ? (
           <p className="text-sm text-[var(--clio-muted)]">
             No requirements are linked to this element yet.
-          </p>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
-function NotesSection({
-  relatedNotes,
-  updateProject,
-  onAddNote,
-}: {
-  relatedNotes: DocumentationProject["notes"];
-  updateProject: (
-    updater: (current: DocumentationProject) => DocumentationProject
-  ) => void;
-  onAddNote: () => void;
-}) {
-  return (
-    <section>
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-bold text-[var(--clio-purple-950)]">
-          Notes
-        </h3>
-
-        <button
-          onClick={onAddNote}
-          className="clio-btn-secondary rounded-lg px-3 py-1.5 text-xs font-semibold"
-        >
-          Add Note
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        {relatedNotes.map((note) => (
-          <div key={note.id} className="clio-note-card rounded-xl p-3">
-            <div className="grid grid-cols-[1fr_auto] gap-2">
-              <input
-                value={note.title || ""}
-                onChange={(event) =>
-                  updateProject((current) => ({
-                    ...current,
-                    notes: current.notes.map((item) =>
-                      item.id === note.id
-                        ? { ...item, title: event.target.value }
-                        : item
-                    ),
-                  }))
-                }
-                className="clio-input rounded-lg px-2 py-1 text-sm font-medium"
-              />
-
-              <select
-                value={note.type}
-                onChange={(event) =>
-                  updateProject((current) => ({
-                    ...current,
-                    notes: current.notes.map((item) =>
-                      item.id === note.id
-                        ? { ...item, type: event.target.value as NoteType }
-                        : item
-                    ),
-                  }))
-                }
-                className="clio-input rounded-lg px-2 py-1 text-xs"
-              >
-                <option value="note">Note</option>
-                <option value="decision">Decision</option>
-                <option value="question">Question</option>
-                <option value="todo">TODO</option>
-              </select>
-            </div>
-
-            <textarea
-              value={note.content}
-              onChange={(event) =>
-                updateProject((current) => ({
-                  ...current,
-                  notes: current.notes.map((item) =>
-                    item.id === note.id
-                      ? { ...item, content: event.target.value }
-                      : item
-                  ),
-                }))
-              }
-              rows={4}
-              className="clio-input mt-2 w-full rounded-lg px-2 py-1 text-sm"
-            />
-
-            <label className="mt-2 flex items-center gap-2 text-xs text-[var(--clio-muted)]">
-              <input
-                type="checkbox"
-                checked={note.includeInExport}
-                onChange={(event) =>
-                  updateProject((current) => ({
-                    ...current,
-                    notes: current.notes.map((item) =>
-                      item.id === note.id
-                        ? {
-                            ...item,
-                            includeInExport: event.target.checked,
-                          }
-                        : item
-                    ),
-                  }))
-                }
-              />
-              Include in export
-            </label>
-          </div>
-        ))}
-
-        {!relatedNotes.length ? (
-          <p className="text-sm text-[var(--clio-muted)]">
-            No notes are attached to this element yet.
           </p>
         ) : null}
       </div>

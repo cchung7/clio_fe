@@ -2,6 +2,8 @@ export type DecompositionView = "system" | "functional" | "object" | "domain";
 
 export type WorkspacePanel = "canvas" | "document" | "evolution";
 
+export type ProjectStatus = "draft" | "review" | "approved" | "archived";
+
 export type NodeKind =
   | "system"
   | "actor"
@@ -18,6 +20,13 @@ export type NodeLifecycle =
   | "deprecated"
   | "removed";
 
+export type RelationshipType =
+  | "uses"
+  | "calls"
+  | "writes"
+  | "reads"
+  | "sends_data_to";
+
 export type RequirementType =
   | "functional"
   | "nonfunctional"
@@ -28,7 +37,10 @@ export type RequirementPriority = "low" | "medium" | "high";
 
 export type NoteType = "note" | "decision" | "question" | "todo";
 
-export type ProjectStatus = "draft" | "review" | "approved" | "archived";
+export type CanvasPosition = {
+  x: number;
+  y: number;
+};
 
 export type ArchitectureNode = {
   id: string;
@@ -38,10 +50,7 @@ export type ArchitectureNode = {
   name: string;
   description: string;
   lifecycle: NodeLifecycle;
-  position: {
-    x: number;
-    y: number;
-  };
+  position?: CanvasPosition;
 };
 
 export type ArchitectureEdge = {
@@ -49,13 +58,7 @@ export type ArchitectureEdge = {
   source: string;
   target: string;
   label?: string;
-  relationshipType?:
-    | "uses"
-    | "calls"
-    | "reads"
-    | "writes"
-    | "depends_on"
-    | "sends_data_to";
+  relationshipType: RelationshipType;
 };
 
 export type Requirement = {
@@ -71,10 +74,17 @@ export type Requirement = {
 export type Note = {
   id: string;
   title?: string;
-  content: string;
   type: NoteType;
+  content: string;
   targetNodeId?: string;
   includeInExport: boolean;
+
+  /**
+   * Canvas-only note support.
+   * When true, this note appears visually inside the current canvas view.
+   */
+  showOnCanvas?: boolean;
+  canvasPosition?: CanvasPosition;
 };
 
 export type ChangeNote = {
@@ -87,18 +97,25 @@ export type ChangeNote = {
   createdAt: string;
 };
 
+export type ProjectSnapshotState = {
+  nodes: ArchitectureNode[];
+  edges: ArchitectureEdge[];
+  requirements: Requirement[];
+  notes: Note[];
+};
+
 export type ProjectSnapshot = {
   id: string;
   version: string;
   title: string;
   summary: string;
   createdAt: string;
-  state: {
-    nodes: ArchitectureNode[];
-    edges: ArchitectureEdge[];
-    requirements: Requirement[];
-    notes: Note[];
-  };
+
+  /**
+   * Optional because older snapshots may only contain metadata.
+   * Future restore/compare features can use this state object.
+   */
+  state?: ProjectSnapshotState;
 };
 
 export type DocumentationProject = {
@@ -108,11 +125,12 @@ export type DocumentationProject = {
   description: string;
   currentVersion: string;
   status: ProjectStatus;
+  updatedAt: string;
+
   nodes: ArchitectureNode[];
   edges: ArchitectureEdge[];
   requirements: Requirement[];
   notes: Note[];
   changes: ChangeNote[];
   snapshots: ProjectSnapshot[];
-  updatedAt: string;
 };

@@ -8,7 +8,7 @@ import type {
 
 export const STORAGE_KEY = "clio-builder-project-v0-1";
 export const SYSTEM_OVERVIEW_ID = "system-overview";
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 export function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -130,7 +130,7 @@ export function getAllowedNodeKindsForCurrentView({
   focusedNodeId: string;
 }): NodeKind[] {
   if (focusedNodeId === SYSTEM_OVERVIEW_ID) {
-    return ["system"];
+    return ["actor", "system", "external"];
   }
 
   const focusedNode = getNodeById(project, focusedNodeId);
@@ -140,14 +140,14 @@ export function getAllowedNodeKindsForCurrentView({
   }
 
   if (focusedNode.kind === "system") {
-    return ["actor", "layer", "external"];
+    return ["layer", "component", "api", "database"];
   }
 
   if (focusedNode.kind === "layer") {
-    return ["component", "api", "database", "external"];
+    return ["component", "api", "database"];
   }
 
-  return ["component", "api", "database", "external"];
+  return ["component", "api", "database"];
 }
 
 export function getNodeKindLabel(kind: NodeKind) {

@@ -5,8 +5,10 @@ import {
   FileClock,
   FileText,
   History,
+  Layers,
   Menu,
   Save,
+  Settings,
   Upload,
 } from "lucide-react";
 
@@ -21,6 +23,7 @@ type BuilderTopBarProps = {
   decompositionView: DecompositionView;
   setDecompositionView: (view: DecompositionView) => void;
   setWorkspacePanel: (panel: WorkspacePanel) => void;
+  onOpenProjectSettings: () => void;
   onSaveSnapshot: () => void;
   onDownloadMarkdown: () => void;
   onExportProjectJson: () => void;
@@ -38,11 +41,28 @@ const VIEW_OPTIONS: Array<{
   { label: "Domain Decomposition", value: "domain", disabled: true },
 ];
 
+function getDisplayProjectName(project: DocumentationProject) {
+  const name = project.name.trim();
+  const version = project.currentVersion.trim();
+
+  if (!version) return name;
+
+  const normalizedName = name.toLowerCase();
+  const normalizedVersion = version.toLowerCase();
+
+  if (normalizedName.endsWith(` ${normalizedVersion}`)) {
+    return name.slice(0, name.length - version.length).trim();
+  }
+
+  return name;
+}
+
 export function BuilderTopBar({
   project,
   decompositionView,
   setDecompositionView,
   setWorkspacePanel,
+  onOpenProjectSettings,
   onSaveSnapshot,
   onDownloadMarkdown,
   onExportProjectJson,
@@ -55,6 +75,8 @@ export function BuilderTopBar({
     VIEW_OPTIONS.find((item) => item.value === decompositionView)?.label ??
     "System View";
 
+  const displayProjectName = getDisplayProjectName(project);
+
   return (
     <header className="clio-topbar z-20 border-b px-4 py-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -62,8 +84,9 @@ export function BuilderTopBar({
           <div className="text-lg font-bold text-[var(--clio-purple-950)]">
             Clio
           </div>
+
           <div className="truncate text-xs text-[var(--clio-muted)]">
-            {project.name} · {project.currentVersion} · {project.status} ·
+            {displayProjectName} · {project.currentVersion} · {project.status} ·
             Autosaved
           </div>
         </div>
@@ -79,29 +102,87 @@ export function BuilderTopBar({
             </button>
 
             {viewMenuOpen ? (
-              <div className="absolute right-0 z-50 mt-2 w-72 rounded-xl border border-[var(--clio-purple-border)] bg-[var(--clio-white)] p-2 shadow-xl">
-                {VIEW_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    disabled={option.disabled}
-                    onClick={() => {
-                      if (option.disabled) return;
-                      setDecompositionView(option.value);
-                      setWorkspacePanel("canvas");
-                      setViewMenuOpen(false);
-                    }}
-                    className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
-                      option.value === decompositionView
-                        ? "bg-[var(--clio-purple-900)] text-[var(--clio-white)]"
-                        : "text-[var(--clio-ink)] hover:bg-[var(--clio-purple-50)]"
-                    } ${option.disabled ? "cursor-not-allowed opacity-50" : ""}`}
-                  >
-                    <div className="font-semibold">{option.label}</div>
-                    {option.disabled ? (
-                      <div className="text-xs opacity-75">Coming soon</div>
-                    ) : null}
-                  </button>
-                ))}
+              <div className="absolute right-0 z-50 mt-2 w-80 rounded-xl border border-[var(--clio-purple-border)] bg-[var(--clio-white)] p-2 shadow-xl">
+                <div className="px-3 pb-2 pt-1">
+                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--clio-purple-700)]">
+                    Architecture Views
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-[var(--clio-muted)]">
+                    Switch between system, functional, object, and domain
+                    perspectives.
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  {VIEW_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      disabled={option.disabled}
+                      onClick={() => {
+                        if (option.disabled) return;
+
+                        setDecompositionView(option.value);
+                        setWorkspacePanel("canvas");
+                        setViewMenuOpen(false);
+                      }}
+                      className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                        option.value === decompositionView
+                          ? "bg-[var(--clio-purple-900)] text-[var(--clio-white)]"
+                          : "text-[var(--clio-ink)] hover:bg-[var(--clio-purple-50)]"
+                      } ${
+                        option.disabled ? "cursor-not-allowed opacity-50" : ""
+                      }`}
+                    >
+                      <div className="font-semibold">{option.label}</div>
+
+                      {option.disabled ? (
+                        <div className="text-xs opacity-75">Coming soon</div>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="my-2 border-t border-[var(--clio-border)]" />
+
+                <div className="px-3 py-2">
+                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--clio-purple-700)]">
+                    AI-Assisted Views
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-[var(--clio-muted)]">
+                    Future versions can generate functional, object, or domain
+                    views from the current system map.
+                  </p>
+                </div>
+
+                <button
+                  disabled
+                  className="w-full cursor-not-allowed rounded-lg px-3 py-2 text-left text-sm text-[var(--clio-muted)] opacity-60"
+                >
+                  <div className="font-semibold">
+                    Generate Functional View with AI
+                  </div>
+                  <div className="text-xs">Coming soon</div>
+                </button>
+
+                <button
+                  disabled
+                  className="w-full cursor-not-allowed rounded-lg px-3 py-2 text-left text-sm text-[var(--clio-muted)] opacity-60"
+                >
+                  <div className="font-semibold">
+                    Generate Object View with AI
+                  </div>
+                  <div className="text-xs">Coming soon</div>
+                </button>
+
+                <button
+                  disabled
+                  className="w-full cursor-not-allowed rounded-lg px-3 py-2 text-left text-sm text-[var(--clio-muted)] opacity-60"
+                >
+                  <div className="font-semibold">
+                    Generate Domain View with AI
+                  </div>
+                  <div className="text-xs">Coming soon</div>
+                </button>
               </div>
             ) : null}
           </div>
@@ -117,6 +198,17 @@ export function BuilderTopBar({
 
             {mainMenuOpen ? (
               <div className="absolute right-0 z-50 mt-2 w-72 rounded-xl border border-[var(--clio-purple-border)] bg-[var(--clio-white)] p-2 shadow-xl">
+                <MenuButton
+                  icon={<Layers size={16} />}
+                  label="Canvas Workspace"
+                  onClick={() => {
+                    setWorkspacePanel("canvas");
+                    setMainMenuOpen(false);
+                  }}
+                />
+
+                <div className="my-2 border-t border-[var(--clio-border)]" />
+
                 <MenuButton
                   icon={<FileText size={16} />}
                   label="Document Preview"
@@ -134,6 +226,17 @@ export function BuilderTopBar({
                     setMainMenuOpen(false);
                   }}
                 />
+
+                <MenuButton
+                  icon={<Settings size={16} />}
+                  label="Project Settings"
+                  onClick={() => {
+                    onOpenProjectSettings();
+                    setMainMenuOpen(false);
+                  }}
+                />
+
+                <div className="my-2 border-t border-[var(--clio-border)]" />
 
                 <MenuButton
                   icon={<Save size={16} />}
@@ -183,13 +286,6 @@ export function BuilderTopBar({
               </div>
             ) : null}
           </div>
-
-          <button
-            onClick={() => setWorkspacePanel("canvas")}
-            className="clio-btn-gold rounded-lg px-3 py-2 text-sm font-semibold"
-          >
-            Return to Canvas
-          </button>
         </div>
       </div>
     </header>

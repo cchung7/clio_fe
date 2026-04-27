@@ -1,9 +1,11 @@
 import * as React from "react";
+import { Trash2 } from "lucide-react";
 
 import type {
   ArchitectureNode,
   DecompositionView,
   DocumentationProject,
+  Note,
 } from "../_lib/builderTypes";
 import {
   getBreadcrumbs,
@@ -28,6 +30,7 @@ type ArchitectureCanvasProps = {
 
 const CARD_WIDTH = 280;
 const CARD_HEIGHT = 132;
+const NOTE_WIDTH = 260;
 const COLUMN_GAP = 340;
 const ROW_GAP = 190;
 
@@ -36,11 +39,26 @@ type Position = {
   y: number;
 };
 
-type DragState = {
-  nodeId: string;
-  offsetX: number;
-  offsetY: number;
-};
+type DragState =
+  | {
+      targetType: "node";
+      id: string;
+      offsetX: number;
+      offsetY: number;
+    }
+  | {
+      targetType: "note";
+      id: string;
+      offsetX: number;
+      offsetY: number;
+    };
+
+type EditableNoteField = "title" | "content" | null;
+
+function formatElementCount(count: number) {
+  if (count <= 0) return "No elements";
+  return `${count} ${count === 1 ? "element" : "elements"}`;
+}
 
 function getDefaultCardPosition(index: number): Position {
   const column = index % 3;
@@ -49,6 +67,13 @@ function getDefaultCardPosition(index: number): Position {
   return {
     x: 80 + column * COLUMN_GAP,
     y: 80 + row * ROW_GAP,
+  };
+}
+
+function getDefaultCanvasNotePosition(index: number): Position {
+  return {
+    x: 140 + index * 28,
+    y: 480 + index * 28,
   };
 }
 
@@ -64,16 +89,28 @@ function getResolvedCardPosition(node: ArchitectureNode, index: number) {
   return getDefaultCardPosition(index);
 }
 
+function getResolvedCanvasNotePosition(note: Note, index: number) {
+  if (
+    note.canvasPosition &&
+    Number.isFinite(note.canvasPosition.x) &&
+    Number.isFinite(note.canvasPosition.y)
+  ) {
+    return note.canvasPosition;
+  }
+
+  return getDefaultCanvasNotePosition(index);
+}
+
 function ClioCanvasCard({
   node,
-  childCount,
+  elementCount,
   selected,
   dragging,
   onPointerDown,
   onDoubleClick,
 }: {
   node: ArchitectureNode;
-  childCount: number;
+  elementCount: number;
   selected: boolean;
   dragging: boolean;
   onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
@@ -120,12 +157,162 @@ function ClioCanvasCard({
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-[var(--clio-muted)]">
-        <span>{childCount > 0 ? `${childCount} child items` : "No children"}</span>
+        <span>{formatElementCount(elementCount)}</span>
 
         <span className="font-bold text-[var(--clio-purple-700)]">
           Double-click to open
         </span>
       </div>
+    </div>
+  );
+}
+
+function CanvasNoteCard({
+  note,
+  dragging,
+  onPointerDown,
+  updateProject,
+}: {
+  note: Note;
+  dragging: boolean;
+  onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
+  updateProject: (
+    updater: (current: DocumentationProject) => DocumentationProject
+  ) => void;
+}) {
+  const [editingField, setEditingField] =
+    React.useState<EditableNoteField>(null);
+
+  const titleRef = React.useRef<HTMLInputElement | null>(null);
+  const contentRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  React.useEffect(() => {
+    if (editingField === "title") {
+      titleRef.current?.focus();
+      titleRef.current?.select();
+    }
+
+    if (editingField === "content") {
+      contentRef.current?.focus();
+    }
+  }, [editingField]);
+
+  function updateCanvasNote(patch: Partial<Note>) {
+    updateProject((current) => ({
+      ...current,
+      notes: current.notes.map((item) =>
+        item.id === note.id ? { ...item, ...patch } : item
+      ),
+    }));
+  }
+
+  function deleteCanvasNote() {
+    const confirmed = window.confirm("Delete this canvas note?");
+
+    if (!confirmed) return;
+
+    updateProject((current) => ({
+      ...current,
+      notes: current.notes.filter((item) => item.id !== note.id),
+    }));
+  }
+
+  return (
+    <div
+      role="note"
+      className="clio-note-card rounded-xl px-4 py-3 text-left"
+      style={{
+        width: NOTE_WIDTH,
+        minHeight: 148,
+      }}
+    >
+      <div
+        onPointerDown={onPointerDown}
+        className={`mb-2 flex cursor-grab items-center justify-between gap-2 select-none ${
+          dragging ? "cursor-grabbing" : ""
+        }`}
+        style={{
+          touchAction: "none",
+        }}
+      >
+        <div className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--clio-gold-800)]">
+          Note
+        </div>
+
+        <button
+          type="button"
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            deleteCanvasNote();
+          }}
+          className="relative z-20 rounded-lg p-1.5 text-red-700 transition hover:bg-red-50"
+          aria-label={`Delete ${note.title || "canvas note"}`}
+          title={`Delete ${note.title || "canvas note"}`}
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {editingField === "title" ? (
+        <input
+          ref={titleRef}
+          value={note.title || ""}
+          placeholder="Note title"
+          onPointerDown={(event) => event.stopPropagation()}
+          onChange={(event) => updateCanvasNote({ title: event.target.value })}
+          onBlur={() => setEditingField(null)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === "Escape") {
+              setEditingField(null);
+            }
+          }}
+          className="clio-input w-full rounded-lg px-2 py-1 text-sm font-semibold"
+        />
+      ) : (
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            setEditingField("title");
+          }}
+          className="block w-full rounded-lg px-2 py-1 text-left text-sm font-bold text-[var(--clio-ink)] transition hover:bg-[rgba(255,255,255,0.55)]"
+          title="Click to edit note title"
+        >
+          {note.title || "Canvas note"}
+        </button>
+      )}
+
+      {editingField === "content" ? (
+        <textarea
+          ref={contentRef}
+          value={note.content}
+          placeholder="Note body"
+          onPointerDown={(event) => event.stopPropagation()}
+          onChange={(event) => updateCanvasNote({ content: event.target.value })}
+          onBlur={() => setEditingField(null)}
+          rows={4}
+          className="clio-input mt-2 w-full rounded-lg px-2 py-1 text-xs leading-5"
+        />
+      ) : (
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            setEditingField("content");
+          }}
+          className="mt-2 block min-h-[4.25rem] w-full rounded-lg px-2 py-1 text-left text-xs leading-5 text-[var(--clio-muted)] transition hover:bg-[rgba(255,255,255,0.55)]"
+          title="Click to edit note body"
+        >
+          {note.content || "No note body yet."}
+        </button>
+      )}
     </div>
   );
 }
@@ -152,6 +339,10 @@ export function ArchitectureCanvas({
     focusedNodeId,
     decompositionView,
   });
+
+  const canvasNotes = project.notes.filter(
+    (note) => note.targetNodeId === focusedNodeId && note.showOnCanvas
+  );
 
   const visibleNodeIds = React.useMemo(
     () => new Set(visibleNodes.map((node) => node.id)),
@@ -208,6 +399,20 @@ export function ArchitectureCanvas({
     }));
   }
 
+  function updateCanvasNotePosition(noteId: string, position: Position) {
+    updateProject((current) => ({
+      ...current,
+      notes: current.notes.map((note) =>
+        note.id === noteId
+          ? {
+              ...note,
+              canvasPosition: position,
+            }
+          : note
+      ),
+    }));
+  }
+
   function handleCardPointerDown(
     node: ArchitectureNode,
     index: number,
@@ -225,7 +430,32 @@ export function ArchitectureCanvas({
     );
 
     setDragState({
-      nodeId: node.id,
+      targetType: "node",
+      id: node.id,
+      offsetX: pointerPosition.x - currentPosition.x,
+      offsetY: pointerPosition.y - currentPosition.y,
+    });
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handleCanvasNotePointerDown(
+    note: Note,
+    index: number,
+    event: React.PointerEvent<HTMLDivElement>
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const currentPosition = getResolvedCanvasNotePosition(note, index);
+    const pointerPosition = clientPointToCanvasPoint(
+      event.clientX,
+      event.clientY
+    );
+
+    setDragState({
+      targetType: "note",
+      id: note.id,
       offsetX: pointerPosition.x - currentPosition.x,
       offsetY: pointerPosition.y - currentPosition.y,
     });
@@ -246,7 +476,12 @@ export function ArchitectureCanvas({
       y: Math.round(pointerPosition.y - dragState.offsetY),
     };
 
-    updateNodePosition(dragState.nodeId, nextPosition);
+    if (dragState.targetType === "node") {
+      updateNodePosition(dragState.id, nextPosition);
+      return;
+    }
+
+    updateCanvasNotePosition(dragState.id, nextPosition);
   }
 
   function handleCanvasPointerUp() {
@@ -343,7 +578,7 @@ export function ArchitectureCanvas({
             }}
             className="clio-btn-secondary rounded-lg px-3 py-2 text-sm font-medium"
           >
-            System Overview
+            System View
           </button>
         </div>
       </div>
@@ -361,7 +596,7 @@ export function ArchitectureCanvas({
           backgroundSize: "32px 32px",
         }}
       >
-        {visibleNodes.length ? (
+        {visibleNodes.length || canvasNotes.length ? (
           <>
             <div className="absolute left-4 bottom-4 z-20 flex flex-col overflow-hidden rounded-xl border border-[var(--clio-purple-border)] bg-[var(--clio-white)] shadow-lg">
               <button
@@ -432,7 +667,7 @@ export function ArchitectureCanvas({
 
               {visibleNodes.map((node, index) => {
                 const position = getResolvedCardPosition(node, index);
-                const childCount = getChildCount({
+                const elementCount = getChildCount({
                   project,
                   nodeId: node.id,
                   decompositionView,
@@ -449,9 +684,12 @@ export function ArchitectureCanvas({
                   >
                     <ClioCanvasCard
                       node={node}
-                      childCount={childCount}
+                      elementCount={elementCount}
                       selected={selectedNodeId === node.id}
-                      dragging={dragState?.nodeId === node.id}
+                      dragging={
+                        dragState?.targetType === "node" &&
+                        dragState.id === node.id
+                      }
                       onPointerDown={(event) =>
                         handleCardPointerDown(node, index, event)
                       }
@@ -460,6 +698,33 @@ export function ArchitectureCanvas({
                         setFocusedNodeId(node.id);
                         resetViewport();
                       }}
+                    />
+                  </div>
+                );
+              })}
+
+              {canvasNotes.map((note, index) => {
+                const position = getResolvedCanvasNotePosition(note, index);
+
+                return (
+                  <div
+                    key={note.id}
+                    style={{
+                      position: "absolute",
+                      left: position.x,
+                      top: position.y,
+                    }}
+                  >
+                    <CanvasNoteCard
+                      note={note}
+                      dragging={
+                        dragState?.targetType === "note" &&
+                        dragState.id === note.id
+                      }
+                      updateProject={updateProject}
+                      onPointerDown={(event) =>
+                        handleCanvasNotePointerDown(note, index, event)
+                      }
                     />
                   </div>
                 );
@@ -473,7 +738,7 @@ export function ArchitectureCanvas({
                 This view is empty.
               </div>
               <p className="mt-2 text-sm leading-6 text-[var(--clio-muted)]">
-                Open Project / Add and create an element for this current view.
+                Open Project and create an element for this current view.
               </p>
             </div>
           </div>
