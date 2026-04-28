@@ -7,7 +7,6 @@ import type {
 import { useCurrentCanvasItems } from "../../_hooks/useCurrentCanvasItems";
 
 import { AddToCanvasPanel } from "./AddToCanvasPanel";
-import { ConnectorArrowsList } from "./ConnectorArrowsList";
 import { ElementsInViewList } from "./ElementsInViewList";
 
 type BuilderSidebarProps = {
@@ -42,17 +41,12 @@ export function BuilderSidebar({
   deleteNode,
   resetProject,
 }: BuilderSidebarProps) {
-  const {
-    currentViewNodes,
-    canvasNotes,
-    connectableItems,
-    currentViewEdges,
-    getConnectableItemLabel,
-  } = useCurrentCanvasItems({
-    project,
-    focusedNodeId,
-    decompositionView,
-  });
+  const { currentViewNodes, canvasNotes, connectableItems } =
+    useCurrentCanvasItems({
+      project,
+      focusedNodeId,
+      decompositionView,
+    });
 
   return (
     <aside className="clio-sidebar h-full min-h-0 overflow-auto border-r p-4">
@@ -74,13 +68,6 @@ export function BuilderSidebar({
         setSelectedNodeId={setSelectedNodeId}
         setFocusedNodeId={setFocusedNodeId}
         deleteNode={deleteNode}
-      />
-
-      <ConnectorArrowsList
-        edges={currentViewEdges}
-        connectableItems={connectableItems}
-        getConnectableItemLabel={getConnectableItemLabel}
-        updateProject={updateProject}
       />
 
       <button

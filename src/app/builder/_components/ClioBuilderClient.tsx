@@ -40,9 +40,44 @@ export function ClioBuilderClient() {
     resetToSystemCanvas,
   } = useClioProject();
 
+  const [selectedConnectorId, setSelectedConnectorId] = React.useState<
+    string | null
+  >(null);
+
   const [leftDrawerOpen, setLeftDrawerOpen] = React.useState(false);
   const [rightDrawerOpen, setRightDrawerOpen] = React.useState(false);
   const [projectSettingsOpen, setProjectSettingsOpen] = React.useState(false);
+
+  function selectNode(id: string) {
+    setSelectedConnectorId(null);
+    setSelectedNodeId(id);
+  }
+
+  function focusNode(id: string) {
+    setSelectedConnectorId(null);
+    setFocusedNodeId(id);
+  }
+
+  function selectConnector(id: string) {
+    setSelectedConnectorId(id);
+    setSelectedNodeId("");
+    setRightDrawerOpen(true);
+  }
+
+  function handleResetToSystemCanvas(view = decompositionView) {
+    setSelectedConnectorId(null);
+    resetToSystemCanvas(view);
+  }
+
+  function handleDeleteNode(id: string) {
+    setSelectedConnectorId(null);
+    deleteNode(id);
+  }
+
+  function handleResetProject() {
+    setSelectedConnectorId(null);
+    resetProject();
+  }
 
   const sidebar = (
     <BuilderSidebar
@@ -50,15 +85,16 @@ export function ClioBuilderClient() {
       focusedNodeId={focusedNodeId}
       selectedNodeId={selectedNodeId}
       decompositionView={decompositionView}
-      setSelectedNodeId={setSelectedNodeId}
-      setFocusedNodeId={setFocusedNodeId}
+      setSelectedNodeId={selectNode}
+      setFocusedNodeId={focusNode}
       updateProject={updateProject}
       addNode={(params) => {
+        setSelectedConnectorId(null);
         addNode(params);
         setRightDrawerOpen(true);
       }}
-      deleteNode={deleteNode}
-      resetProject={resetProject}
+      deleteNode={handleDeleteNode}
+      resetProject={handleResetProject}
     />
   );
 
@@ -66,6 +102,9 @@ export function ClioBuilderClient() {
     <NodeDetailsPanel
       node={selectedNode}
       project={project}
+      focusedNodeId={focusedNodeId}
+      selectedConnectorId={selectedConnectorId}
+      setSelectedConnectorId={setSelectedConnectorId}
       decompositionView={decompositionView}
       updateNode={updateNode}
       updateProject={updateProject}
@@ -84,10 +123,12 @@ export function ClioBuilderClient() {
             project={project}
             focusedNodeId={focusedNodeId}
             selectedNodeId={selectedNodeId}
+            selectedConnectorId={selectedConnectorId}
             decompositionView={decompositionView}
             updateProject={updateProject}
-            setSelectedNodeId={setSelectedNodeId}
-            setFocusedNodeId={setFocusedNodeId}
+            setSelectedNodeId={selectNode}
+            setFocusedNodeId={focusNode}
+            onSelectConnector={selectConnector}
           />
         </ReactFlowProvider>
       ) : null}
@@ -107,7 +148,7 @@ export function ClioBuilderClient() {
       <BuilderTopBar
         project={project}
         decompositionView={decompositionView}
-        setDecompositionView={resetToSystemCanvas}
+        setDecompositionView={handleResetToSystemCanvas}
         setWorkspacePanel={setWorkspacePanel}
         onOpenProjectSettings={() => setProjectSettingsOpen(true)}
         onSaveSnapshot={saveSnapshot}

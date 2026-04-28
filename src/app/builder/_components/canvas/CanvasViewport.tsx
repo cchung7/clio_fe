@@ -30,6 +30,7 @@ type CanvasViewportProps = {
   visibleNodes: ArchitectureNode[];
   canvasNotes: Note[];
   selectedNodeId: string;
+  selectedConnectorId: string | null;
   decompositionView: DecompositionView;
   viewportResetToken: number;
   updateProject: (
@@ -38,6 +39,7 @@ type CanvasViewportProps = {
   setSelectedNodeId: (id: string) => void;
   setFocusedNodeId: (id: string) => void;
   requestViewportReset: () => void;
+  onSelectConnector: (id: string) => void;
 };
 
 export function CanvasViewport({
@@ -45,12 +47,14 @@ export function CanvasViewport({
   visibleNodes,
   canvasNotes,
   selectedNodeId,
+  selectedConnectorId,
   decompositionView,
   viewportResetToken,
   updateProject,
   setSelectedNodeId,
   setFocusedNodeId,
   requestViewportReset,
+  onSelectConnector,
 }: CanvasViewportProps) {
   const {
     viewportRef,
@@ -155,7 +159,12 @@ export function CanvasViewport({
               transformOrigin: "top left",
             }}
           >
-            <CanvasEdges edges={visibleEdges} itemRects={visibleItemRects} />
+            <CanvasEdges
+              edges={visibleEdges}
+              itemRects={visibleItemRects}
+              selectedConnectorId={selectedConnectorId}
+              onSelectConnector={onSelectConnector}
+            />
 
             {visibleNodes.map((node, index) => {
               const position = getResolvedCardPosition(node, index);
@@ -177,7 +186,9 @@ export function CanvasViewport({
                   <CanvasCard
                     node={node}
                     elementCount={elementCount}
-                    selected={selectedNodeId === node.id}
+                    selected={
+                      !selectedConnectorId && selectedNodeId === node.id
+                    }
                     dragging={
                       dragState?.targetType === "node" &&
                       dragState.id === node.id

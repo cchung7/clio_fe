@@ -1,1 +1,0 @@
-export { HeroBackgroundSlideshow } from "@/features/home";

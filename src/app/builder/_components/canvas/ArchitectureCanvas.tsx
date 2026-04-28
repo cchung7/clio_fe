@@ -19,22 +19,26 @@ type ArchitectureCanvasProps = {
   project: DocumentationProject;
   focusedNodeId: string;
   selectedNodeId: string;
+  selectedConnectorId: string | null;
   decompositionView: DecompositionView;
   updateProject: (
     updater: (current: DocumentationProject) => DocumentationProject
   ) => void;
   setSelectedNodeId: (id: string) => void;
   setFocusedNodeId: (id: string) => void;
+  onSelectConnector: (id: string) => void;
 };
 
 export function ArchitectureCanvas({
   project,
   focusedNodeId,
   selectedNodeId,
+  selectedConnectorId,
   decompositionView,
   updateProject,
   setSelectedNodeId,
   setFocusedNodeId,
+  onSelectConnector,
 }: ArchitectureCanvasProps) {
   const [viewportResetToken, setViewportResetToken] = React.useState(0);
 
@@ -101,12 +105,14 @@ export function ArchitectureCanvas({
         visibleNodes={currentViewNodes}
         canvasNotes={canvasNotes}
         selectedNodeId={selectedNodeId}
+        selectedConnectorId={selectedConnectorId}
         decompositionView={decompositionView}
         viewportResetToken={viewportResetToken}
         updateProject={updateProject}
         setSelectedNodeId={setSelectedNodeId}
         setFocusedNodeId={setFocusedNodeId}
         requestViewportReset={requestViewportReset}
+        onSelectConnector={onSelectConnector}
       />
     </div>
   );

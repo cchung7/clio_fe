@@ -1,1 +1,0 @@
-export { HomePageHero } from "@/features/home";
